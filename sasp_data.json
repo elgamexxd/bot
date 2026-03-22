@@ -1,0 +1,118 @@
+{
+  "892122643879329832": {
+    "grev": 0,
+    "ihrac": false,
+    "gecmis": [],
+    "not_listesi": [],
+    "rutbe": null,
+    "sicil": null,
+    "giris_tarihi": null,
+    "aktif": true
+  },
+  "1416853377517883476": {
+    "grev": 0,
+    "ihrac": false,
+    "gecmis": [
+      {
+        "tarih": "2026-03-22T10:42:46.654862+00:00",
+        "islem": "Terfi Oylaması Başlatıldı",
+        "sebep": "Belirsiz → Komutan",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T10:42:57.670220+00:00",
+        "islem": "Kayıt Sıfırlandı",
+        "sebep": "Manuel sıfırlama",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:16:49.901738+00:00",
+        "islem": "Göreve Alındı",
+        "sebep": "Panel üzerinden",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:17:01.184843+00:00",
+        "islem": "Kayıt Sıfırlandı",
+        "sebep": "Manuel sıfırlama",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:19:56.093248+00:00",
+        "islem": "Terfi Oylaması Başlatıldı",
+        "sebep": "Belirsiz → Chief of Police",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:20:03.050571+00:00",
+        "islem": "Terfi Oylaması Başlatıldı",
+        "sebep": "Belirsiz → Sergeant II",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:20:26.121539+00:00",
+        "islem": "Terfi Edildi",
+        "sebep": "Belirsiz → Sergeant II",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:24:43.473770+00:00",
+        "islem": "Nöbet Başladı",
+        "sebep": "Bölge: Merkez Karakol",
+        "yapan": "elgamex"
+      },
+      {
+        "tarih": "2026-03-22T11:24:47.947986+00:00",
+        "islem": "Nöbet Bitti",
+        "sebep": "Merkez Karakol | 0 dk",
+        "yapan": "elgamex"
+      }
+    ],
+    "not_listesi": [],
+    "rutbe": "Sergeant II",
+    "sicil": null,
+    "giris_tarihi": null,
+    "aktif": true,
+    "izin_gecmisi": [],
+    "aktif_izin": null,
+    "nobet_gecmisi": [
+      {
+        "bolge": "Merkez Karakol",
+        "baslangic": "2026-03-22T11:24:43.473754+00:00",
+        "baslatan": "elgamex",
+        "bitis": "2026-03-22T11:24:47.947971+00:00",
+        "sure_dakika": 0
+      }
+    ],
+    "aktif_nobet": null,
+    "terfi_gecmisi": [
+      {
+        "tarih": "2026-03-22T11:20:26.121522+00:00",
+        "eski_rutbe": "Belirsiz",
+        "yeni_rutbe": "Sergeant II",
+        "evet": 1,
+        "hayir": 0,
+        "onaylayan": "elgamex"
+      }
+    ],
+    "rapor_sayisi": 2
+  },
+  "raporlar": [
+    {
+      "tarih": "2026-03-22T11:17:25.257429+00:00",
+      "sikayet_eden": "elgamex",
+      "sikayet_edilen": "fsdgsdf",
+      "konu": "sgdf",
+      "aciklama": "dfgdf",
+      "durum": "inceleniyor"
+    },
+    {
+      "tarih": "2026-03-22T11:18:59.490069+00:00",
+      "sikayet_eden": "elgamex",
+      "sikayet_edilen": "fsdsd",
+      "konu": "sdfsdf",
+      "aciklama": "sdfdsfds",
+      "durum": "inceleniyor"
+    }
+  ]
+}
