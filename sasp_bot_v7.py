@@ -13,6 +13,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # ╠══════════════════════════════════════════════════════════════╣
 
 YETKİLİ_ROL_ID = 1484188685850120193
+IZINLI_ROL_ID  = 1484188685800050743  # ← izin onaylanınca verilir, bitince alınır
 
 GREV_1_ROLE = 1484188685745524864
 GREV_2_ROLE = 1484188685745524863
@@ -117,6 +118,20 @@ async def rutbe_rol_guncelle(member, eski_rutbe, yeni_rutbe):
         rol = member.guild.get_role(RUTBE_ROLLERI[yeni_rutbe])
         if rol:
             await member.add_roles(rol, reason=f"SASP: {yeni_rutbe}")
+
+async def izinli_rol_ver(member: discord.Member):
+    if IZINLI_ROL_ID == 0: return
+    rol = member.guild.get_role(IZINLI_ROL_ID)
+    if rol:
+        try: await member.add_roles(rol, reason="SASP İzin Onaylandı")
+        except: pass
+
+async def izinli_rol_al(member: discord.Member):
+    if IZINLI_ROL_ID == 0: return
+    rol = member.guild.get_role(IZINLI_ROL_ID)
+    if rol:
+        try: await member.remove_roles(rol, reason="SASP İzin Sona Erdi")
+        except: pass
 
 async def log_gonder(guild, embed):
     ch = guild.get_channel(LOG_KANAL_ID)
@@ -317,6 +332,7 @@ class IzinOnayView(discord.ui.View):
         md["izin_gecmisi"].append({**md["aktif_izin"], "tarih": now_iso(), "durum": "onaylandi"})
         gecmis_kaydet(md, "İzin Onaylandı", f"{self.talep['baslangic']} → {self.talep['bitis']}", str(interaction.user))
         save_data(data)
+        await izinli_rol_ver(self.talepci)  # ← İzinli rolü ver
         await dm_bildirim(self.talepci, "İzin Talebiniz Onaylandı ✅",
                           f"{self.talep['baslangic']} → {self.talep['bitis']}", str(interaction.user))
         emb = interaction.message.embeds[0]; emb.color = discord.Color.green()
@@ -374,14 +390,11 @@ class TerfiOyView(discord.ui.View):
         emb = interaction.message.embeds[0]; emb.set_field_at(-1, name="📊 Oylar", value=self.oy_bar())
         await interaction.response.edit_message(embed=emb, view=self)
 
-    # ── DÜZELTME: defer + edit_original_response ──────────────
     @discord.ui.button(label="🔒 Oyu Kapat & Uygula", style=discord.ButtonStyle.secondary)
     async def kapat(self, interaction, button):
         if not yetkili_mi(interaction.user):
             await interaction.response.send_message("❌ Yetkiniz yok.", ephemeral=True); return
-
-        await interaction.response.defer()  # ← 3 sn timeout'u önler
-
+        await interaction.response.defer()
         ev = sum(1 for v in self.oylar.values() if v)
         ha = sum(1 for v in self.oylar.values() if not v)
         hedef = interaction.guild.get_member(self.hedef_id)
@@ -404,7 +417,7 @@ class TerfiOyView(discord.ui.View):
         emb.set_field_at(-1, name="📊 Final", value=self.oy_bar())
         self.stop()
         for item in self.children: item.disabled = True
-        await interaction.edit_original_response(embed=emb, view=self)  # ← defer sonrası bunu kullan
+        await interaction.edit_original_response(embed=emb, view=self)
 
 # ══════════════════════════════════════════
 #  SEBEP DROPDOWN
@@ -854,6 +867,7 @@ class IzinPaneli(YetkiliPanel):
             md["aktif_izin"] = {"baslangic": bugun, "bitis": "Belirsiz", "sebep": s, "onaylayan": str(inter.user)}
             md["izin_gecmisi"].append({**md["aktif_izin"], "tarih": now_iso(), "durum": "onaylandi"})
             gecmis_kaydet(md, "İzin Verildi", s, str(inter.user)); save_data(data)
+            await izinli_rol_ver(self.hedef)  # ← İzinli rolü ver
             await dm_bildirim(self.hedef, "İzin Onaylandı ✅", s, str(inter.user))
             await log_isle(inter.guild, self.hedef, "İzin Verildi", s, inter.user.mention, discord.Color.teal())
             await inter.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
@@ -867,6 +881,7 @@ class IzinPaneli(YetkiliPanel):
             await interaction.followup.send("❌ Aktif izin yok.", ephemeral=True); return
         md["aktif_izin"] = None
         gecmis_kaydet(md, "İzin Sona Erdi", "Yetkilice sonlandırıldı", str(interaction.user)); save_data(data)
+        await izinli_rol_al(self.hedef)  # ← İzinli rolü kaldır
         await dm_bildirim(self.hedef, "İzniniz Sona Erdi", "Yetkilice sonlandırıldı", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "İzin Sona Erdi", "Yetkilice sonlandırıldı",
                        interaction.user.mention, discord.Color.orange())
@@ -1037,6 +1052,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅  {bot.user} aktif! | /sasp komutu aktif")
     print(f"🔑 Yetkili Rol ID: {YETKİLİ_ROL_ID}")
+    print(f"🏖️ İzinli Rol ID: {IZINLI_ROL_ID}")
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="SASP | /sasp")
     )
