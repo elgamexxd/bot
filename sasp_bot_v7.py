@@ -310,6 +310,7 @@ class IzinOnayView(discord.ui.View):
     async def onayla(self, interaction, button):
         if not yetkili_mi(interaction.user):
             await interaction.response.send_message("❌ Yetkiniz yok.", ephemeral=True); return
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.talepci.id)
         md["aktif_izin"] = {"baslangic": self.talep["baslangic"], "bitis": self.talep["bitis"],
                             "sebep": self.talep["sebep"], "onaylayan": str(interaction.user)}
@@ -322,12 +323,13 @@ class IzinOnayView(discord.ui.View):
         emb.title = "🏖️ İzin Talebi — ✅ ONAYLANDI"
         emb.add_field(name="👮 Onaylayan", value=interaction.user.mention, inline=True)
         for item in self.children: item.disabled = True
-        await interaction.response.edit_message(embed=emb, view=self)
+        await interaction.edit_original_response(embed=emb, view=self)
 
     @discord.ui.button(label="❌ Reddet", style=discord.ButtonStyle.danger)
     async def reddet(self, interaction, button):
         if not yetkili_mi(interaction.user):
             await interaction.response.send_message("❌ Yetkiniz yok.", ephemeral=True); return
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.talepci.id)
         md["izin_gecmisi"].append({"baslangic": self.talep["baslangic"], "bitis": self.talep["bitis"],
                                    "sebep": self.talep["sebep"], "tarih": now_iso(), "durum": "reddedildi",
@@ -340,7 +342,7 @@ class IzinOnayView(discord.ui.View):
         emb.title = "🏖️ İzin Talebi — ❌ REDDEDİLDİ"
         emb.add_field(name="👮 Reddeden", value=interaction.user.mention, inline=True)
         for item in self.children: item.disabled = True
-        await interaction.response.edit_message(embed=emb, view=self)
+        await interaction.edit_original_response(embed=emb, view=self)
 
 # ══════════════════════════════════════════
 #  TERFİ OY VIEW
@@ -372,10 +374,14 @@ class TerfiOyView(discord.ui.View):
         emb = interaction.message.embeds[0]; emb.set_field_at(-1, name="📊 Oylar", value=self.oy_bar())
         await interaction.response.edit_message(embed=emb, view=self)
 
+    # ── DÜZELTME: defer + edit_original_response ──────────────
     @discord.ui.button(label="🔒 Oyu Kapat & Uygula", style=discord.ButtonStyle.secondary)
     async def kapat(self, interaction, button):
         if not yetkili_mi(interaction.user):
             await interaction.response.send_message("❌ Yetkiniz yok.", ephemeral=True); return
+
+        await interaction.response.defer()  # ← 3 sn timeout'u önler
+
         ev = sum(1 for v in self.oylar.values() if v)
         ha = sum(1 for v in self.oylar.values() if not v)
         hedef = interaction.guild.get_member(self.hedef_id)
@@ -398,7 +404,7 @@ class TerfiOyView(discord.ui.View):
         emb.set_field_at(-1, name="📊 Final", value=self.oy_bar())
         self.stop()
         for item in self.children: item.disabled = True
-        await interaction.response.edit_message(embed=emb, view=self)
+        await interaction.edit_original_response(embed=emb, view=self)  # ← defer sonrası bunu kullan
 
 # ══════════════════════════════════════════
 #  SEBEP DROPDOWN
@@ -425,6 +431,7 @@ class SebepView(discord.ui.View):
         self.add_item(SebepDropdown(islem_tipi, hedef, seviye))
 
     async def islemi_uygula(self, interaction, sebep):
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.hedef.id)
         islem_str = ""; renk = discord.Color.orange()
         if self.islem_tipi == "grev":
@@ -448,7 +455,7 @@ class SebepView(discord.ui.View):
         save_data(data)
         await dm_bildirim(self.hedef, islem_str, sebep, str(interaction.user))
         await log_isle(interaction.guild, self.hedef, islem_str, sebep, interaction.user.mention, renk)
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md),
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md),
                                                  view=StrikePaneli(self.hedef, self.yapan))
 
 # ══════════════════════════════════════════
@@ -512,7 +519,7 @@ class NotListesiView(discord.ui.View):
         await i.response.edit_message(embed=durum_embed(self.hedef, md), view=StrikePaneli(self.hedef, self.yapan))
 
 # ══════════════════════════════════════════
-#  TERFİ RÜTBE DROPDOWN  (yükselt)
+#  TERFİ RÜTBE DROPDOWN
 # ══════════════════════════════════════════
 class TerfiRutbeDropdown(discord.ui.Select):
     def __init__(self, hedef, yapan):
@@ -521,6 +528,7 @@ class TerfiRutbeDropdown(discord.ui.Select):
                          options=[discord.SelectOption(label=r, value=r) for r in RUTBE_SIRASI])
 
     async def callback(self, interaction):
+        await interaction.response.defer()
         yeni = self.values[0]
         data = load_data(); md = get_md(data, self.hedef.id)
         eski = md.get("rutbe") or "Belirsiz"
@@ -549,7 +557,7 @@ class TerfiRutbeDropdown(discord.ui.Select):
             await dm_bildirim(self.hedef, "Terfi Edildiniz! 🎉", f"{eski} → **{yeni}**", str(interaction.user))
             await log_isle(interaction.guild, self.hedef, "Terfi Edildi", f"{eski} → {yeni}",
                            interaction.user.mention, discord.Color.gold())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md),
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md),
                                                  view=TerfiPaneli(self.hedef, self.yapan))
 
 class TerfiRutbeView(discord.ui.View):
@@ -557,7 +565,7 @@ class TerfiRutbeView(discord.ui.View):
         super().__init__(timeout=60); self.add_item(TerfiRutbeDropdown(hedef, yapan))
 
 # ══════════════════════════════════════════
-#  RÜTBE DÜŞÜR DROPDOWN  ← YENİ
+#  RÜTBE DÜŞÜR DROPDOWN
 # ══════════════════════════════════════════
 class RutbeDusurDropdown(discord.ui.Select):
     def __init__(self, hedef, yapan):
@@ -569,29 +577,22 @@ class RutbeDusurDropdown(discord.ui.Select):
         yeni = self.values[0]
         data = load_data(); md = get_md(data, self.hedef.id)
         eski = md.get("rutbe") or "Belirsiz"
-
-        # Gerçekten düşürme işlemi mi kontrol et
         if eski in RUTBE_SIRASI and yeni in RUTBE_SIRASI:
             if RUTBE_SIRASI.index(yeni) >= RUTBE_SIRASI.index(eski):
                 await interaction.response.send_message(
-                    f"❌ **{yeni}** rütbesi **{eski}** rütbesinden düşük değil!\n"
-                    f"Rütbe düşürmek için mevcut rütbenin altını seçin.",
-                    ephemeral=True)
-                return
-
+                    f"❌ **{yeni}** rütbesi **{eski}** rütbesinden düşük değil!",
+                    ephemeral=True); return
+        await interaction.response.defer()
         md["rutbe"] = yeni
-        md["terfi_gecmisi"].append({
-            "tarih": now_iso(), "eski_rutbe": eski, "yeni_rutbe": yeni,
-            "onaylayan": str(interaction.user), "tip": "düşürme"
-        })
+        md["terfi_gecmisi"].append({"tarih": now_iso(), "eski_rutbe": eski, "yeni_rutbe": yeni,
+                                    "onaylayan": str(interaction.user), "tip": "düşürme"})
         gecmis_kaydet(md, "Rütbe Düşürüldü", f"{eski} → {yeni}", str(interaction.user))
         save_data(data)
         await rutbe_rol_guncelle(self.hedef, eski, yeni)
-        await dm_bildirim(self.hedef, "Rütbeniz Düşürüldü 📉",
-                          f"{eski} → {yeni}", str(interaction.user))
+        await dm_bildirim(self.hedef, "Rütbeniz Düşürüldü 📉", f"{eski} → {yeni}", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "Rütbe Düşürüldü",
                        f"{eski} → {yeni}", interaction.user.mention, discord.Color.dark_orange())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md),
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md),
                                                  view=TerfiPaneli(self.hedef, self.yapan))
 
 class RutbeDusurView(discord.ui.View):
@@ -608,6 +609,7 @@ class NobetBolgeDropdown(discord.ui.Select):
                          options=[discord.SelectOption(label=b, value=b) for b in NOBET_BOLGELER])
 
     async def callback(self, interaction):
+        await interaction.response.defer()
         bolge = self.values[0]
         data = load_data(); md = get_md(data, self.hedef.id)
         md["aktif_nobet"] = {"bolge": bolge, "baslangic": now_iso(), "baslatan": str(interaction.user)}
@@ -616,7 +618,7 @@ class NobetBolgeDropdown(discord.ui.Select):
         await dm_bildirim(self.hedef, "Nöbet Başlatıldı 🚔", f"Bölge: {bolge}", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "Nöbet Başladı", f"Bölge: {bolge}",
                        interaction.user.mention, discord.Color.blue())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md),
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md),
                                                  view=NobetPaneli(self.hedef, self.yapan))
 
 class NobetBolgeView(discord.ui.View):
@@ -685,8 +687,10 @@ class StrikePaneli(YetkiliPanel):
     async def g2(self, i, b): await self._grev(i, 2)
     @discord.ui.button(label="3X Strike", style=discord.ButtonStyle.danger,    emoji="🚨", row=0)
     async def g3(self, i, b): await self._grev(i, 3)
-    @discord.ui.button(label="Sıfırla",   style=discord.ButtonStyle.success,   emoji="🔄", row=0)
+
+    @discord.ui.button(label="Sıfırla", style=discord.ButtonStyle.success, emoji="🔄", row=0)
     async def sifirla(self, interaction, button):
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.hedef.id)
         md["grev"] = 0; md["ihrac"] = False
         await strike_rolleri_temizle(self.hedef)
@@ -694,9 +698,9 @@ class StrikePaneli(YetkiliPanel):
         await dm_bildirim(self.hedef, "Kayıt Sıfırlandı", "Manuel sıfırlama", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "Kayıt Sıfırlandı", "Manuel sıfırlama",
                        interaction.user.mention, discord.Color.green())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md), view=self)
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
 
-    @discord.ui.button(label="İHRAÇ ET",      style=discord.ButtonStyle.danger,  emoji="🔴", row=1)
+    @discord.ui.button(label="İHRAÇ ET", style=discord.ButtonStyle.danger, emoji="🔴", row=1)
     async def ihrac(self, interaction, button):
         data = load_data(); md = get_md(data, self.hedef.id)
         if md["ihrac"]:
@@ -709,6 +713,7 @@ class StrikePaneli(YetkiliPanel):
 
     @discord.ui.button(label="İhracı Kaldır", style=discord.ButtonStyle.success, emoji="✅", row=1)
     async def ihrac_kaldir(self, interaction, button):
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.hedef.id)
         md["ihrac"] = False; md["grev"] = 0
         await strike_rolleri_temizle(self.hedef)
@@ -716,9 +721,9 @@ class StrikePaneli(YetkiliPanel):
         await dm_bildirim(self.hedef, "İhraç Kaldırıldı", "Panel üzerinden", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "İhraç Kaldırıldı", "Panel üzerinden",
                        interaction.user.mention, discord.Color.green())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md), view=self)
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
 
-    @discord.ui.button(label="Uzaklaştır",    style=discord.ButtonStyle.danger,  emoji="⛔", row=1)
+    @discord.ui.button(label="Uzaklaştır", style=discord.ButtonStyle.danger, emoji="⛔", row=1)
     async def uzaklastir(self, interaction, button):
         data = load_data(); md = get_md(data, self.hedef.id)
         if not md.get("aktif", True):
@@ -728,15 +733,16 @@ class StrikePaneli(YetkiliPanel):
         await interaction.response.edit_message(embed=e,
             view=OnayView("uzaklastir", self.hedef, self.yapan, f"**{self.hedef.display_name}** uzaklaştırma sebebi:"))
 
-    @discord.ui.button(label="Göreve Al",     style=discord.ButtonStyle.success, emoji="🟢", row=1)
+    @discord.ui.button(label="Göreve Al", style=discord.ButtonStyle.success, emoji="🟢", row=1)
     async def goreve_al(self, interaction, button):
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.hedef.id)
         md["aktif"] = True
         gecmis_kaydet(md, "Göreve Alındı", "Panel üzerinden", str(interaction.user)); save_data(data)
         await dm_bildirim(self.hedef, "Göreve Alındı", "Panel üzerinden", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "Göreve Alındı", "Panel üzerinden",
                        interaction.user.mention, discord.Color.green())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md), view=self)
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
 
     @discord.ui.button(label="📝 Not Ekle", style=discord.ButtonStyle.secondary, row=2)
     async def not_ekle(self, i, b): await i.response.send_modal(NotModal(self.hedef, self.yapan))
@@ -777,9 +783,10 @@ class NobetPaneli(YetkiliPanel):
 
     @discord.ui.button(label="🏁 Nöbet Bitir", style=discord.ButtonStyle.danger, row=0)
     async def nobet_bitir(self, interaction, button):
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.hedef.id)
         if not md.get("aktif_nobet"):
-            await interaction.response.send_message("❌ Aktif nöbet yok.", ephemeral=True); return
+            await interaction.followup.send("❌ Aktif nöbet yok.", ephemeral=True); return
         nb = md["aktif_nobet"]
         sure = int((datetime.now(timezone.utc) - datetime.fromisoformat(nb["baslangic"])).total_seconds() / 60)
         nb["bitis"] = now_iso(); nb["sure_dakika"] = sure
@@ -788,14 +795,14 @@ class NobetPaneli(YetkiliPanel):
         await dm_bildirim(self.hedef, "Nöbet Sona Erdi 🏁", f"{nb['bolge']} | {sure} dk", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "Nöbet Bitti", f"{nb['bolge']} | {sure} dk",
                        interaction.user.mention, discord.Color.blue())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md), view=self)
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
 
     @discord.ui.button(label="🔙 Ana Menü", style=discord.ButtonStyle.secondary, row=1)
     async def geri(self, interaction, button):
         await interaction.response.edit_message(embed=ana_menu_embed(), view=AnaMenuView(self.yapan))
 
 # ══════════════════════════════════════════
-#  3️⃣  TERFİ PANELİ  ← RÜTBE DÜŞÜR EKLENDİ
+#  3️⃣  TERFİ PANELİ
 # ══════════════════════════════════════════
 class TerfiPaneli(YetkiliPanel):
     @discord.ui.button(label="📈 Rütbe Yükselt", style=discord.ButtonStyle.success, row=0)
@@ -809,11 +816,9 @@ class TerfiPaneli(YetkiliPanel):
     async def rutbe_dusur(self, interaction, button):
         data = load_data(); md = get_md(data, self.hedef.id)
         mevcut = md.get("rutbe") or "Belirsiz"
-        e = discord.Embed(
-            title="📉 Rütbe Düşür",
-            description=f"**{self.hedef.display_name}** — Mevcut rütbe: **{mevcut}**\nDüşürülecek rütbeyi seçin:",
-            color=discord.Color.dark_orange()
-        )
+        e = discord.Embed(title="📉 Rütbe Düşür",
+                          description=f"**{self.hedef.display_name}** — Mevcut: **{mevcut}**\nDüşürülecek rütbeyi seçin:",
+                          color=discord.Color.dark_orange())
         await interaction.response.edit_message(embed=e, view=RutbeDusurView(self.hedef, self.yapan))
 
     @discord.ui.button(label="📜 Terfi Geçmişi", style=discord.ButtonStyle.secondary, row=0)
@@ -827,11 +832,8 @@ class TerfiPaneli(YetkiliPanel):
             for t in terfiler[::-1]:
                 tip = t.get("tip", "terfi")
                 emoji = "📈" if tip == "terfi" else "📉"
-                e.add_field(
-                    name=f"`{t['tarih'][:10]}` {emoji} {t.get('eski_rutbe','?')} → {t['yeni_rutbe']}",
-                    value=f"👮 {t.get('onaylayan','?')}",
-                    inline=False
-                )
+                e.add_field(name=f"`{t['tarih'][:10]}` {emoji} {t.get('eski_rutbe','?')} → {t['yeni_rutbe']}",
+                            value=f"👮 {t.get('onaylayan','?')}", inline=False)
         e.set_footer(text=f"Toplam {len(terfiler)} değişiklik | SASP")
         await interaction.response.send_message(embed=e, ephemeral=True)
 
@@ -846,6 +848,7 @@ class IzinPaneli(YetkiliPanel):
     @discord.ui.button(label="✅ İzin Ver", style=discord.ButtonStyle.success, row=0)
     async def izin_ver(self, interaction, button):
         async def cb(inter, s):
+            await inter.response.defer()
             data = load_data(); md = get_md(data, self.hedef.id)
             bugun = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             md["aktif_izin"] = {"baslangic": bugun, "bitis": "Belirsiz", "sebep": s, "onaylayan": str(inter.user)}
@@ -853,20 +856,21 @@ class IzinPaneli(YetkiliPanel):
             gecmis_kaydet(md, "İzin Verildi", s, str(inter.user)); save_data(data)
             await dm_bildirim(self.hedef, "İzin Onaylandı ✅", s, str(inter.user))
             await log_isle(inter.guild, self.hedef, "İzin Verildi", s, inter.user.mention, discord.Color.teal())
-            await inter.response.edit_message(embed=durum_embed(self.hedef, md), view=self)
+            await inter.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
         await interaction.response.send_modal(SebepModal(cb))
 
     @discord.ui.button(label="🏁 İzni Bitir", style=discord.ButtonStyle.danger, row=0)
     async def izin_bitir(self, interaction, button):
+        await interaction.response.defer()
         data = load_data(); md = get_md(data, self.hedef.id)
         if not md.get("aktif_izin"):
-            await interaction.response.send_message("❌ Aktif izin yok.", ephemeral=True); return
+            await interaction.followup.send("❌ Aktif izin yok.", ephemeral=True); return
         md["aktif_izin"] = None
         gecmis_kaydet(md, "İzin Sona Erdi", "Yetkilice sonlandırıldı", str(interaction.user)); save_data(data)
         await dm_bildirim(self.hedef, "İzniniz Sona Erdi", "Yetkilice sonlandırıldı", str(interaction.user))
         await log_isle(interaction.guild, self.hedef, "İzin Sona Erdi", "Yetkilice sonlandırıldı",
                        interaction.user.mention, discord.Color.orange())
-        await interaction.response.edit_message(embed=durum_embed(self.hedef, md), view=self)
+        await interaction.edit_original_response(embed=durum_embed(self.hedef, md), view=self)
 
     @discord.ui.button(label="🔙 Ana Menü", style=discord.ButtonStyle.secondary, row=1)
     async def geri(self, interaction, button):
